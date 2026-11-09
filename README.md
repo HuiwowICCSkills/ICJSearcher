@@ -2,7 +2,7 @@
 
 独立检索国际法院（ICJ）官网 Document Search，并读取判决/命令 PDF。只访问 `icj-cij.org`。
 
-仓库：<https://github.com/GDUFSICCSkills/ICJSearcher>（私有）。
+仓库：<https://github.com/HuiwowICCSkills/ICJSearcher>（私有）。
 
 ## 1. 环境
 
@@ -15,7 +15,7 @@
 ## 2. 安装
 
 ```powershell
-git clone https://github.com/GDUFSICCSkills/ICJSearcher.git "$env:USERPROFILE\.codex\skills\ICJSearcher"
+git clone https://github.com/HuiwowICCSkills/ICJSearcher.git "$env:USERPROFILE\.codex\skills\ICJSearcher"
 python -m pip install -r "$env:USERPROFILE\.codex\skills\ICJSearcher\requirements.txt"
 # 需要 PDF 无头回退时再安装：
 python -m pip install -r "$env:USERPROFILE\.codex\skills\ICJSearcher\requirements-bypass.txt"
