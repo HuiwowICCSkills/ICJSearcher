@@ -1,0 +1,4 @@
+interface:
+  display_name: "国际法院（ICJ）检索"
+  short_description: "检索 ICJ 官方 Document Search 并提取判决 PDF 文本"
+  default_prompt: "使用 $ICJSearcher 检索 ICJ；报告案件、文书类型、日期、PDF 链接、页数和是否需要 OCR，引用时回到 PDF 页文本。"

@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Local run artefacts
+output/
+*.local.json
+.opil-cache/
+.icrc-cache/
+.icj-cache/
+.hudoc-cache/
+.icd-cache/
+.cld-cache/
+.ucr-cache/
+.icty-cache/
+.ictr-cache/

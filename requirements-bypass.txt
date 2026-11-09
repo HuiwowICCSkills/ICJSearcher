@@ -1,0 +1,7 @@
+# Optional Cloudflare headless fallback for ICJSearcher.
+# Install this file only when the direct HTTP route is blocked.
+-r requirements.txt
+DrissionPage>=4.1.1.4,<4.2
+curl_cffi>=0.14,<1
+python-socks[asyncio]>=2.5,<4
+psutil>=5.9,<8
