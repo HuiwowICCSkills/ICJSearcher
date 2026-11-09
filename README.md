@@ -2,7 +2,7 @@
 
 独立检索国际法院（ICJ）官网 Document Search，并读取判决/命令 PDF。只访问 `icj-cij.org`。
 
-仓库：<https://github.com/HuiwowICCSkills/ICJSearcher>（私有）。
+仓库：<https://github.com/HuiwowICCSkills/ICJSearcher>（公开）。
 
 ## 1. 环境
 
