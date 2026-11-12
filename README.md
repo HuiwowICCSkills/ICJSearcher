@@ -50,21 +50,23 @@ $icj = "$env:USERPROFILE\.codex\skills\ICJSearcher\run.ps1"
 
 本 skill 只做 ICJ 官网；其他法院/法庭用 `HUDOCSearcher`、`ICTYSearcher`、`ICTRSearcher`、`IRMCTCldSearcher`。检索结果是元数据，引用前必须读取 PDF 并核对案件、文书类型、日期和页码。
 
-## 实测效果（2026-11-09）
+## 实测效果（2026-11-12）
 
-以下命令与结果来自本机 `~/.codex/skills/ICJSearcher` 的实网运行；检索日期 2026-11-09（Asia/Shanghai），输出为该次运行实际返回的 JSON 报告。
+以下命令与结果来自本机 `~/.codex/skills/ICJSearcher` 的实网运行；检索日期 2026-11-12（Asia/Shanghai），输出为该次运行实际返回的 JSON 报告。
 
 ```powershell
-& .\run.ps1 search 'state immunity' --limit 5
+$icj = "$env:USERPROFILE\.codex\skills\ICJSearcher\run.ps1"
+& $icj search 'immunity' --phrase 'state immunity' --document-type judgments --date-from 2010-01-01 --date-to 2020-12-31 --limit 5
 ```
 
-- 状态：`ok`；服务端/索引报告 `total = 5869`；本次返回 5 条。
+- 状态：`ok`；`total = 7`；本次返回 5 条。
+- 高级过滤：`search_api_fulltext=immunity`（any-of-words）、`search_api_fulltext_1=state immunity`（exact phrase）、`field_document_group_type=486`（Judgments）、`field_date_of_the_document[min/max]`。
 - 代表性结果：
 
-| 题名 | 类型 / 日期 | 链接 |
-| --- | --- | --- |
-| The Court to deliver its Judgment on Thursday 19 November 2026 at 10 a.m. | Press releases；2026-11-03 | https://www.icj-cij.org/sites/default/files/case-related/178/178-20261103-pre-01-00-en.pdf |
-| Colombia withdraws its Declaration of intervention in the proceedings | Press releases；2026-09-22 | https://www.icj-cij.org/sites/default/files/case-related/192/192-20260922-pre-01-00-en.pdf |
-| Written comments of Germany on the reply of Nicaragua  to the question put by Judge Charlesworth | Other documents；2026-09-22 | https://www.icj-cij.org/sites/default/files/case-related/193/193-20260922-oth-01-00-en.pdf |
+| 文书 | 案件 | 类型 / 日期 | PDF |
+| --- | --- | --- | --- |
+| Judgment of 11 December 2020 | Immunities and Criminal Proceedings (Equatorial Guinea v. France) | Judgments；2020-12-11 | https://www.icj-cij.org/sites/default/files/case-related/163/163-20201211-JUD-01-00-EN.pdf |
+| Judgment of 13 February 2019 | Certain Iranian Assets (Islamic Republic of Iran v. United States of America) | Judgments；2019-02-13 | https://www.icj-cij.org/sites/default/files/case-related/164/164-20190213-JUD-01-00-EN.pdf |
+| Judgment of 6 June 2018 | Immunities and Criminal Proceedings (Equatorial Guinea v. France) | Judgments；2018-06-06 | https://www.icj-cij.org/sites/default/files/case-related/163/163-20180606-JUD-01-00-EN.pdf |
 
-> 说明：`total = 5869` 是 ICJ 全站 Document Search 对 `state immunity` 的命中总数（`scope`：Official ICJ Document Search across case-related documents），覆盖新闻稿、其他案件文书和书状，并按日期倒序排列，因此前几条是 2026 年的新闻稿与其他文书，而不是精确的"国家豁免"判例命中；判断相关性必须结合命中语境而非关键词。结果行是官方检索记录的元数据（`result_type = retrieved_metadata`，`content_scope`：official ICJ Document Search record, not the judgment text），PDF 正文须用 `fetch` 另行抓取并核对案件、文书类型、日期和页码。
+> 说明：以上是 ICJ Document Search 的**检索元数据**，不是判决正文；`fulltext_url` 仍需用 `fetch` 下载并核对实际文本、日期、案件号和页码。

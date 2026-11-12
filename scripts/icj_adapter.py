@@ -51,6 +51,33 @@ def make_http(args: argparse.Namespace) -> HTTP:
 def add_search_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--limit", type=int, default=10, help="1..50 (default 10)")
     parser.add_argument("--offset", type=int, default=0, help=">= 0 (default 0)")
+    parser.add_argument(
+        "--phrase",
+        help="Exact word or phrase (ICJ advanced-search field search_api_fulltext_1)",
+    )
+    parser.add_argument(
+        "--wildcard",
+        help="Wildcard term (ICJ advanced-search field search_api_fulltext_2)",
+    )
+    parser.add_argument(
+        "--document-type",
+        dest="document_type",
+        help=(
+            "Document group id or label fragment, e.g. 486, Judgments, "
+            "Advisory opinions, Press releases"
+        ),
+    )
+    parser.add_argument(
+        "--incidental",
+        help=(
+            "Incidental proceeding id or label fragment, e.g. 409, "
+            "Provisional measures, Counter-claims"
+        ),
+    )
+    parser.add_argument("--date-from", dest="date_from", help="Document date lower bound YYYY-MM-DD")
+    parser.add_argument("--date-to", dest="date_to", help="Document date upper bound YYYY-MM-DD")
+    parser.add_argument("--sort", choices=("ASC", "DESC"), default="DESC", help="Date sort order")
+    parser.add_argument("--case-id", dest="case_id", help="Numeric ICJ case id for field_doc_case_code_1[]")
 
 
 def add_fetch_args(parser: argparse.ArgumentParser) -> None:
@@ -59,9 +86,75 @@ def add_fetch_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--max-mb", type=int, default=250, help="Maximum PDF size in MiB")
 
 
+DOCUMENT_TYPES = {
+    "application": "477",
+    "special agreement": "478",
+    "request for advisory opinion": "479",
+    "written proceedings": "480",
+    "other documents": "481",
+    "oral proceedings": "482",
+    "oral statements": "482",
+    "orders": "483",
+    "judgments": "486",
+    "advisory opinions": "489",
+    "summaries": "495",
+    "press releases": "496",
+    "correspondence": "497",
+}
+INCIDENTAL = {
+    "counter-claims": "411",
+    "discontinuance": "414",
+    "intervention": "412",
+    "preliminary objections": "410",
+    "provisional measures": "409",
+    "questions of jurisdiction": "413",
+    "jurisdiction and/or admissibility": "413",
+    "admissibility": "413",
+}
+
+
+def _lookup(value: str | None, mapping: dict[str, str], label: str) -> str:
+    if not value:
+        return "All"
+    text = str(value).strip()
+    if text.isdigit():
+        return text
+    key = text.casefold()
+    if key in mapping:
+        return mapping[key]
+    partial = [(name, ident) for name, ident in mapping.items() if key in name]
+    if len(partial) == 1:
+        return partial[0][1]
+    if len(partial) > 1:
+        raise ValueError(
+            f"{label} value {value!r} is ambiguous; candidates: "
+            + ", ".join(name for name, _ in partial)
+        )
+    raise ValueError(f"{label} has no known label matching {value!r}")
+
+
+def _document_type_id(value: str | None) -> str:
+    return _lookup(value, DOCUMENT_TYPES, "document-type")
+
+
+def _incidental_id(value: str | None) -> str:
+    if not value:
+        return "All"
+    return _lookup(value, INCIDENTAL, "incidental")
+
+
 def search(query: str, args: argparse.Namespace, http: HTTP) -> dict[str, Any]:
-    if not query.strip():
-        raise ValueError("A non-empty query is required")
+    advanced_filters = [
+        getattr(args, "phrase", None),
+        getattr(args, "wildcard", None),
+        getattr(args, "document_type", None),
+        getattr(args, "incidental", None),
+        getattr(args, "date_from", None),
+        getattr(args, "date_to", None),
+        getattr(args, "case_id", None),
+    ]
+    if not query.strip() and not any(advanced_filters):
+        raise ValueError("A query or at least one advanced filter is required")
     if not 1 <= args.limit <= 50:
         raise ValueError("limit must be 1..50")
     page_size = max(10, min(args.limit, 100))
@@ -69,7 +162,22 @@ def search(query: str, args: argparse.Namespace, http: HTTP) -> dict[str, Any]:
     within = args.offset % page_size
     params = {
         "search_api_fulltext": query,
+        "search_api_fulltext_1": getattr(args, "phrase", None) or "",
+        "search_api_fulltext_2": getattr(args, "wildcard", None) or "",
+        "case_selection": "2" if getattr(args, "case_id", None) else "1",
+        "field_doc_case_code_1[]": (
+            [args.case_id] if getattr(args, "case_id", None) else []
+        ),
+        "field_document_group_type": _document_type_id(
+            getattr(args, "document_type", None)
+        ),
+        "field_doc_incidental_proceedings": _incidental_id(
+            getattr(args, "incidental", None)
+        ),
+        "field_date_of_the_document[min]": getattr(args, "date_from", None) or "",
+        "field_date_of_the_document[max]": getattr(args, "date_to", None) or "",
         "items_per_page": page_size,
+        "sort_order": getattr(args, "sort", "DESC"),
         "page": page - 1,
     }
     try:
@@ -133,6 +241,16 @@ def search(query: str, args: argparse.Namespace, http: HTTP) -> dict[str, Any]:
     return {
         "status": "ok" if rows or total == 0 else "no-results-in-queried-index",
         "query": query,
+        "filters": {
+            "phrase": getattr(args, "phrase", None),
+            "wildcard": getattr(args, "wildcard", None),
+            "document_type": getattr(args, "document_type", None),
+            "incidental": getattr(args, "incidental", None),
+            "date_from": getattr(args, "date_from", None),
+            "date_to": getattr(args, "date_to", None),
+            "case_id": getattr(args, "case_id", None),
+            "sort": getattr(args, "sort", "DESC"),
+        },
         "total": total,
         "results": selected,
         "pagination": {
@@ -148,7 +266,7 @@ def search(query: str, args: argparse.Namespace, http: HTTP) -> dict[str, Any]:
 
 
 def _search_via_bypass(params: dict[str, Any], timeout: int) -> tuple[BeautifulSoup, dict[str, Any]]:
-    url = SEARCH_URL + "?" + urlencode(params)
+    url = SEARCH_URL + "?" + urlencode(params, doseq=True)
     body, meta = _run_bypass(url, "html", timeout)
     return BeautifulSoup(body, "html.parser"), meta
 

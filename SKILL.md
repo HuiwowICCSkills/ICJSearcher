@@ -19,6 +19,12 @@ description: 独立检索国际法院（ICJ）官网 Document Search，查找案
 # 官方 Document Search
 & '<skill-dir>/run.ps1' search 'state immunity' --limit 10 --out './icj-search.json'
 
+# Advanced Search：精确短语 + 文书类型 + 日期范围
+& '<skill-dir>/run.ps1' search 'immunity' --phrase 'state immunity' --document-type judgments --date-from 2010-01-01 --date-to 2020-12-31 --limit 5
+
+# 附带程序 + 案件 id（案件 id 可在 Advanced Search 的 Case(s) 下拉框中查看）
+& '<skill-dir>/run.ps1' search 'provisional measures' --incidental 'Provisional measures' --case-id 5001 --limit 5
+
 # 取判决/命令 PDF，保存 PDF 与带 @@PAGE n@@ 标记的文本
 & '<skill-dir>/run.ps1' fetch 'https://www.icj-cij.org/sites/default/files/case-related/...pdf' --pdf-out './icj.pdf' --text-out './icj.txt' --out './icj-fetch.json'
 
@@ -29,11 +35,12 @@ description: 独立检索国际法院（ICJ）官网 Document Search，查找案
 & '<skill-dir>/run.ps1' doctor
 ```
 
-通用参数：`--out`、`--cache`、`--cache-ttl`、`--offline`、`--timeout`。`search` 另有 `--limit`、`--offset`；`fetch` 另有 `--pdf-out`、`--text-out`、`--max-mb`。
+通用参数：`--out`、`--cache`、`--cache-ttl`、`--offline`、`--timeout`。`search` 另有 `--limit`、`--offset`、`--phrase`、`--wildcard`、`--document-type`、`--incidental`、`--date-from`、`--date-to`、`--sort`、`--case-id`；`fetch` 另有 `--pdf-out`、`--text-out`、`--max-mb`。
 
 ## 结果边界
 
 - `search` 的结果是**官方检索元数据**，不是判决正文；`fulltext_url` 指向具体 PDF，仍需 `fetch` 才能取得文本。
+- `--phrase` 对应 ICJ Advanced Search 的 `search_api_fulltext_1`（this exact word or phrase），`--wildcard` 对应 `search_api_fulltext_2`，普通 query 对应 `search_api_fulltext`（any of these words）。`--document-type` 可用 ID（如 `486`）或标签（如 `Judgments`），`--incidental` 可用 ID（如 `409`）或标签（如 `Provisional measures`）；完整 ID 表和日期过滤参数见 [references/icj-search.md](references/icj-search.md)。
 - `fetch` 的 PDF 文本页号是 PDF 位置（`@@PAGE n@@`），不是印刷页码；扫描件可能出现 `needs_ocr=true`。
 - ICJ 网站对 PDF 直链可能返回 Cloudflare 403；`fetch` 会自动使用 `scripts/cloudflare_bypass.py` 和 `scripts/vendor/CloudflareBypassForScraping`。该回退需要 `requirements-bypass.txt` 中的依赖；只做 `search` 时不需要。
 - `search` 结果是全站 Document Search，可能含新闻稿、其他文件与不同案件；引用前核对案件名、文书类型、日期和 PDF 内容，不要只凭标题。
